@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant - Task Executor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: var(--white);
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .voice-section {
+            text-align: center;
+        }
+
+        .voice-visualizer {
+            height: 100px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .voice-bar {
+            width: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .voice-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
+            font-size: 3em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+        }
+
+        .voice-button.listening {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4); }
+            50% { transform: scale(1.1); box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4); }
+        }
+
+        .voice-status {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: var(--dark);
+            min-height: 50px;
+        }
+
+        .voice-text {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-style: italic;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .commands {
+            background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .commands h3 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+            padding-bottom: 10px;
+        }
+
+        .command-section {
+            margin-bottom: 20px;
+        }
+
+        .command-section h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .command-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .command-item {
+            background: var(--white);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.2s;
+        }
+
+        .command-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .command-item code {
+            background: var(--primary);
+            color: var(--white);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .task-section h2 {
+            margin-bottom: 20px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--light);
+            background: var(--white);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .task-list {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .task-item {
+            background: var(--light);
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .task-item.completed {
+            opacity: 0.7;
+            background: #e0f2fe;
+        }
+
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .task-item.completed .task-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .task-checkbox::after {
+            content: '✓';
+            color: var(--white);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .task-item.completed .task-checkbox::after {
+            opacity: 1;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-text {
+            font-size: 1.05em;
+            margin-bottom: 5px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .task-type {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: #e0e7ff;
+            color: var(--primary);
+        }
+
+        .action-log {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .action-log h3 {
+            margin-bottom: 15px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary);
+            background: var(--white);
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .log-item.success {
+            border-left-color: var(--success);
+        }
+
+        .log-item.error {
+            border-left-color: var(--danger);
+        }
+
+        .log-time {
+            font-size: 0.8em;
+            color: #64748b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .quick-btn {
+            padding: 15px;
+            background: var(--light);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .quick-btn:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .quick-btn span:first-child {
+            font-size: 1.5em;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: var(--white);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .ai-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            margin: 0 auto 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Voice Assistant</h1>
+            <p>Execute tasks with voice commands - I can open websites, perform searches, and more!</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Voice Control Section -->
+            <div class="card">
+                <div class="voice-section">
+                    <div class="ai-avatar">🤖</div>
+                    <h2 style="margin-bottom: 20px;">Voice Control</h2>
+                    
+                    <div class="voice-visualizer" id="visualizer">
+                        <!-- Voice bars will be added dynamically -->
+                    </div>
+                    
+                    <button class="voice-button" id="voiceBtn">
+                        <span id="micIcon">🎙️</span>
+                    </button>
+                    <div class="voice-status" id="voiceStatus">
+                        Click the microphone or say "Hey Assistant"
+                    </div>
+                    <div class="voice-text" id="voiceText">
+                        Waiting for your command...
+                    </div>
+                </div>
+
+                <div class="commands">
+                    <h3>🎯 Voice Commands</h3>
+                    
+                    <div class="command-section">
+                        <h4>🌐 Web Actions</h4>
+                        <div class="command-list">
+                            <div class="command-item">
+                                <span>📺</span>
+                                <span><code>Open YouTube</code> - Opens YouTube</span>
+                            </div>
+                            <div class="command-item">
+                                <span>🔍</span>
+                                <span><code>Search for</code> + query - Google search</span>
+                            </div>
+                            <div class="command-item">
+                                <span>📧</span>
+                                <span><code>Open Gmail</code> - Opens Gmail</span>
+                            </div>
+                            <div class="command-item">
+                                <span>🎵</span>
+                                <span><code>Play music</code> - Opens Spotify</span>
+                            </div>
+                            <div class="command-item">
+                                <span>📅</span>
+                                <span><code>Open calendar</code> - Google Calendar</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="command-section">
+                        <h4>🛠️ Utility Actions</h4>
+                        <div class="command-list">
+                            <div class="command-item">
+                                <span>🧮</span>
+                                <span><code>Calculate</code> + expression</span>
+                            </div>
+                            <div class="command-item">
+                                <span>⏲️</span>
+                                <span><code>Set timer</code> for X minutes</span>
+                            </div>
+                            <div class="command-item">
+                                <span>🌤️</span>
+                                <span><code>Weather</code> - Current weather</span>
+                            </div>
+                            <div class="command-item">
+                                <span>⏰</span>
+                                <span><code>What time</code> - Current time</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="command-section">
+                        <h4>📝 Task Management</h4>
+                        <div class="command-list">
+                            <div class="command-item">
+                                <span>➕</span>
+                                <span><code>Add task</code> + description</span>
+                            </div>
+                            <div class="command-item">
+                                <span>📋</span>
+                                <span><code>Show tasks</code> - List all tasks</span>
+                            </div>
+                            <div class="command-item">
+                                <span>✅</span>
+                                <span><code>Complete</code> + task name</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks & Actions Section -->
+            <div class="card">
+                <div class="task-section">
+                    <h2>📋 Tasks & Actions</h2>
+                    
+                    <div class="task-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="web">Web Actions</button>
+                        <button class="filter-btn" data-filter="task">Tasks</button>
+                        <button class="filter-btn" data-filter="completed">Completed</button>
+                    </div>
+
+                    <div class="task-list" id="taskList">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="assistant.executeCommand('open youtube')">
+                        <span>📺</span>
+                        <span>YouTube</span>
+                    </button>
+                    <button class="quick-btn" onclick="assistant.executeCommand('open gmail')">
+                        <span>📧</span>
+                        <span>Gmail</span>
+                    </button>
+                    <button class="quick-btn" onclick="assistant.executeCommand('play music')">
+                        <span>🎵</span>
+                        <span>Music</span>
+                    </button>
+                    <button class="quick-btn" onclick="assistant.executeCommand('weather')">
+                        <span>🌤️</span>
+                        <span>Weather</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Log & Stats -->
+            <div class="card">
+                <div class="action-log">
+                    <h3>📊 Action Log</h3>
+                    <div id="actionLog">
+                        <div class="log-item success">
+                            <div>🚀 AI Assistant initialized</div>
+                            <div class="log-time">Just now</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalActions">0</div>
+                        <div class="stat-label">Actions Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="webActions">0</div>
+                        <div class="stat-label">Web Actions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="voiceCommands">0</div>
+                        <div class="stat-label">Voice Commands</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        <span id="notificationIcon">✓</span>
+        <span id="notificationText"></span>
+    </div>
+
+    <script>
+        class AIAssistant {
+            constructor() {
+                this.tasks = JSON.parse(localStorage.getItem('aiTasks')) || [];
+                this.actions = JSON.parse(localStorage.getItem('aiActions')) || [];
+                this.recognition = null;
+                this.synthesis = window.speechSynthesis;
+                this.currentFilter = 'all';
+                this.timers = [];
+                this.initSpeechRecognition();
+                this.init();
+                this.createVisualizer();
+            }
+
+            init() {
+                this.bindEvents();
+                this.render();
+                this.updateStats();
+                this.speak("AI Assistant ready. Click the microphone or say 'Hey Assistant' to start.");
+            }
+
+            createVisualizer() {
+                const visualizer = document.getElementById('visualizer');
+                for (let i = 0; i < 20; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'voice-bar';
+                    bar.style.height = '10px';
+                    visualizer.appendChild(bar);
+                }
+            }
+
+            animateVisualizer(active) {
+                const bars = document.querySelectorAll('.voice-bar');
+                if (active) {
+                    const animate = () => {
+                        bars.forEach(bar => {
+                            const height = Math.random() * 80 + 20;
+                            bar.style.height = `${height}px`;
+                        });
+                        if (document.getElementById('voiceBtn').classList.contains('listening')) {
+                            requestAnimationFrame(animate);
+                        }
+                    };
+                    animate();
+                } else {
+                    bars.forEach(bar => bar.style.height = '10px');
+                }
+            }
+
+            initSpeechRecognition() {
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+                    this.recognition = new SpeechRecognition();
+                    this.recognition.continuous = true;
+                    this.recognition.interimResults = true;
+                    this.recognition.lang = 'en-US';
+
+                    this.recognition.onstart = () => {
+                        document.getElementById('voiceBtn').classList.add('listening');
+                        document.getElementById('micIcon').textContent = '🔴';
+                        document.getElementById('voiceStatus').textContent = 'Listening... Speak your command!';
+                        this.animateVisualizer(true);
+                    };
+
+                    this.recognition.onresult = (event) => {
+                        const current = event.resultIndex;
+                        const transcript = event.results[current][0].transcript.toLowerCase();
+                        
+                        document.getElementById('voiceText').textContent = transcript;
+                        
+                        if (event.results[current].isFinal) {
+                            this.processVoiceCommand(transcript);
+                        }
+                    };
+
+                    this.recognition.onend = () => {
+                        document.getElementById('voiceBtn').classList.remove('listening');
+                        document.getElementById('micIcon').textContent = '🎙️';
+                        document.getElementById('voiceStatus').textContent = 'Click to speak again';
+                        this.animateVisualizer(false);
+                    };
+
+                    // Always listening for wake word
+                    this.startWakeWordDetection();
+                }
+            }
+
+            startWakeWordDetection() {
+                // This would need proper implementation for continuous listening
+                // For demo purposes, we'll use the button
+            }
+
+            bindEvents() {
+                document.getElementById('voiceBtn').addEventListener('click', () => {
+                    if (this.recognition) {
+                        if (document.getElementById('voiceBtn').classList.contains('listening')) {
+                            this.recognition.stop();
+                        } else {
+                            this.recognition.start();
+                        }
+                    }
+                });
+
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentFilter = btn.dataset.filter;
+                        this.render();
+                    });
+                });
+            }
+
+            processVoiceCommand(command) {
+                this.logAction(`Voice command: "${command}"`, 'info');
+                this.executeCommand(command);
+                this.incrementStat('voiceCommands');
+            }
+
+            executeCommand(command) {
+                const lowerCommand = command.toLowerCase().trim();
+                
+                // Web Actions
+                if (lowerCommand.includes('open youtube') || lowerCommand.includes('youtube')) {
+                    this.openWebsite('https://youtube.com', 'YouTube');
+                    this.speak('Opening YouTube');
+                }
+                else if (lowerCommand.includes('open gmail') || lowerCommand.includes('mail')) {
+                    this.openWebsite('https://gmail.com', 'Gmail');
+                    this.speak('Opening Gmail');
+                }
+                else if (lowerCommand.includes('open calendar')) {
+                    this.openWebsite('https://calendar.google.com', 'Google Calendar');
+                    this.speak('Opening Google Calendar');
+                }
+                else if (lowerCommand.includes('play music') || lowerCommand.includes('spotify')) {
+                    this.openWebsite('https://open.spotify.com', 'Spotify');
+                    this.speak('Opening Spotify');
+                }
+                else if (lowerCommand.includes('open twitter') || lowerCommand.includes('x.com')) {
+                    this.openWebsite('https://x.com', 'Twitter/X');
+                    this.speak('Opening Twitter');
+                }
+                else if (lowerCommand.includes('open github')) {
+                    this.openWebsite('https://github.com', 'GitHub');
+                    this.speak('Opening GitHub');
+                }
+                else if (lowerCommand.includes('open netflix')) {
+                    this.openWebsite('https://netflix.com', 'Netflix');
+                    this.speak('Opening Netflix');
+                }
+                
+                // Search
+                else if (lowerCommand.includes('search for') || lowerCommand.includes('google')) {
+                    const query = command.replace(/search for|google/gi, '').trim();
+                    if (query) {
+                        this.searchGoogle(query);
+                        this.speak(`Searching for ${query}`);
+                    }
+                }
+                
+                // Calculator
+                else if (lowerCommand.includes('calculate') || lowerCommand.includes('what is')) {
+                    const expression = command.replace(/calculate|what is/gi, '').trim();
+                    this.calculate(expression);
+                }
+                
+                // Timer
+                else if (lowerCommand.includes('set timer') || lowerCommand.includes('timer for')) {
+                    const match = command.match(/(\d+)\s*(minute|minutes|min|second|seconds|sec)/i);
+                    if (match) {
+                        const time = parseInt(match[1]);
+                        const unit = match[2].toLowerCase();
+                        this.setTimer(time, unit);
+                    }
+                }
+                
+                // Weather
+                else if (lowerCommand.includes('weather')) {
+                    this.getWeather();
+                }
+                
+                // Time
+                else if (lowerCommand.includes('time') || lowerCommand.includes('what time')) {
+                    this.tellTime();
+                }
+                
+                // Task Management
+                else if (lowerCommand.includes('add task') || lowerCommand.includes('create task')) {
+                    const taskText = command.replace(/add task|create task/gi, '').trim();
+                    if (taskText) {
+                        this.addTask(taskText, 'task');
+                        this.speak(`Task added: ${taskText}`);
+                    }
+                }
+                else if (lowerCommand.includes('show tasks') || lowerCommand.includes('list tasks')) {
+                    this.showTasks();
+                }
+                else if (lowerCommand.includes('complete') || lowerCommand.includes('finish')) {
+                    const keyword = command.replace(/complete|finish|task/gi, '').trim();
+                    this.completeTask(keyword);
+                }
+                
+                // Help
+                else if (lowerCommand.includes('help') || lowerCommand.includes('what can you do')) {
+                    this.speak("I can open websites like YouTube, Gmail, and Spotify. Search the web, calculate math, set timers, check weather, manage tasks, and more. Just tell me what you need!");
+                }
+                
+                else {
+                    this.speak("I didn't understand that command. Try saying 'Open YouTube' or 'Search for something'");
+                    this.logAction(`Unknown command: ${command}`, 'error');
+                }
+            }
+
+            openWebsite(url, name) {
+                window.open(url, '_blank');
+                this.addTask(`Opened ${name}`, 'web', true);
+                this.logAction(`Opened ${name}`, 'success');
+                this.incrementStat('webActions');
+                this.showNotification(`✓ ${name} opened in new tab`);
+            }
+
+            searchGoogle(query) {
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                window.open(searchUrl, '_blank');
+                this.addTask(`Searched: ${query}`, 'web', true);
+                this.logAction(`Google search: ${query}`, 'success');
+                this.incrementStat('webActions');
+            }
+
+            calculate(expression) {
+                try {
+                    // Safe math evaluation
+                    const result = Function('"use strict"; return (' + expression.replace(/[^0-9+\-*/().\s]/g, '') + ')')();
+                    const rounded = Math.round(result * 100) / 100;
+                    this.speak(`The answer is ${rounded}`);
+                    this.addTask(`Calculated: ${expression} = ${rounded}`, 'utility', true);
+                    this.logAction(`Calculation: ${expression} = ${rounded}`, 'success');
+                    this.showNotification(`🧮 ${expression} = ${rounded}`);
+                } catch (e) {
+                    this.speak('Sorry, I could not calculate that');
+                    this.logAction('Invalid calculation', 'error');
+                }
+            }
+
+            setTimer(time, unit) {
+                const seconds = unit.includes('min') ? time * 60 : time;
+                const timerId = setTimeout(() => {
+                    this.speak(`Timer finished! ${time} ${unit} is up!`);
+                    this.showNotification(`⏰ Timer finished! ${time} ${unit} is up!`, 'warning');
+                    this.playAlarm();
+                }, seconds * 1000);
+                
+                this.timers.push(timerId);
+                this.speak(`Timer set for ${time} ${unit}`);
+                this.addTask(`Timer: ${time} ${unit}`, 'utility', true);
+                this.logAction(`Set timer for ${time} ${unit}`, 'success');
+            }
+
+            playAlarm() {
+                // Create a simple beep sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.3;
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.2);
+                
+                // Repeat 3 times
+                setTimeout(() => this.playAlarm(), 400);
+                setTimeout(() => this.playAlarm(), 800);
+            }
+
+            getWeather() {
+                // Simulated weather (in real app, would use weather API)
+                const weather = {
+                    temp: Math.floor(Math.random() * 30) + 10,
+                    condition: ['sunny', 'cloudy', 'rainy', 'partly cloudy'][Math.floor(Math.random() * 4)]
+                };
+                
+                const message = `The weather is ${weather.condition} with a temperature of ${weather.temp} degrees celsius`;
+                this.speak(message);
+                this.addTask(`Weather: ${weather.condition}, ${weather.temp}°C`, 'utility', true);
+                this.logAction(message, 'success');
+                this.showNotification(`🌤️ ${weather.condition}, ${weather.temp}°C`);
+            }
+
+            tellTime() {
+                const now = new Date();
+                const time = now.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: 'numeric', 
+                    hour12: true 
+                });
+                const message = `The time is ${time}`;
+                this.speak(message);
+                this.logAction(message, 'success');
+                this.showNotification(`⏰ ${time}`);
+            }
+
+            showTasks() {
+                const activeTasks = this.tasks.filter(t => !t.completed && t.type === 'task');
+                if (activeTasks.length === 0) {
+                    this.speak('You have no active tasks');
+                } else {
+                    const taskList = activeTasks.map(t => t.text).join(', ');
+                    this.speak(`You have ${activeTasks.length} tasks: ${taskList}`);
+                }
+            }
+
+            completeTask(keyword) {
+                const task = this.tasks.find(t => 
+                    !t.completed && 
+                    t.type === 'task' && 
+                    t.text.toLowerCase().includes(keyword.toLowerCase())
+                );
+                
+                if (task) {
+                    task.completed = true;
+                    this.save();
+                    this.render();
+                    this.updateStats();
+                    this.speak(`Task completed: ${task.text}`);
+                    this.logAction(`Completed task: ${task.text}`, 'success');
+                } else {
+                    this.speak('Task not found');
+                    this.logAction(`Task not found: ${keyword}`, 'error');
+                }
+            }
+
+            speak(text) {
+                if (this.synthesis) {
+                    // Cancel any ongoing speech
+                    this.synthesis.cancel();
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 1;
+                    utterance.pitch = 1;
+                    utterance.volume = 1;
+                    
+                    // Use a specific voice if available
+                    const voices = this.synthesis.getVoices();
+                    const preferredVoice = voices.find(voice => 
+                        voice.name.includes('Google') || 
+                        voice.name.includes('Microsoft') ||
+                        voice.lang === 'en-US'
+                    );
+                    
+                    if (preferredVoice) {
+                        utterance.voice = preferredVoice;
+                    }
+                    
+                    this.synthesis.speak(utterance);
+                }
+            }
+
+            addTask(text, type = 'task', completed = false) {
+                const task = {
+                    id: Date.now(),
+                    text: text,
+                    type: type,
+                    completed: completed,
+                    createdAt: new Date().toISOString()
+                };
+                
+                this.tasks.unshift(task);
+                this.save();
+                this.render();
+                this.updateStats();
+                this.incrementStat('totalActions');
+            }
+
+            logAction(message, type = 'info') {
+                const log = {
+                    message: message,
+                    type: type,
+                    time: new Date().toISOString()
+                };
+                
+                this.actions.unshift(log);
+                if (this.actions.length > 50) {
+                    this.actions = this.actions.slice(0, 50);
+                }
+                
+                this.saveActions();
+                this.renderActionLog();
+            }
+
+            renderActionLog() {
+                const logContainer = document.getElementById('actionLog');
+                const recentActions = this.actions.slice(0, 10);
+                
+                logContainer.innerHTML = recentActions.map(action => `
+                    <div class="log-item ${action.type}">
+                        <div>${this.getLogIcon(action.type)} ${action.message}</div>
+                        <div class="log-time">${this.formatTime(action.time)}</div>
+                    </div>
+                `).join('');
+            }
+
+            getLogIcon(type) {
+                switch (type) {
+                    case 'success': return '✅';
+                    case 'error': return '❌';
+                    case 'warning': return '⚠️';
+                    default: return '📝';
+                }
+            }
+
+            getFilteredTasks() {
+                switch (this.currentFilter) {
+                    case 'web':
+                        return this.tasks.filter(t => t.type === 'web');
+                    case 'task':
+                        return this.tasks.filter(t => t.type === 'task' && !t.completed);
+                    case 'completed':
+                        return this.tasks.filter(t => t.completed);
+                    default:
+                        return this.tasks;
+                }
+            }
+
+            render() {
+                const taskList = document.getElementById('taskList');
+                const filteredTasks = this.getFilteredTasks();
+                
+                if (filteredTasks.length === 0) {
+                    taskList.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">No items to display</div>';
+                    return;
+                }
+                
+                taskList.innerHTML = filteredTasks.map(task => `
+                    <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
+                        <div class="task-checkbox" onclick="assistant.toggleTask(${task.id})"></div>
+                        <div class="task-content">
+                            <div class="task-text">${this.escapeHtml(task.text)}</div>
+                            <div class="task-meta">
+                                <span class="task-type">${task.type}</span>
+                                <span>🕒 ${this.formatTime(task.createdAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            toggleTask(id) {
+                const task = this.tasks.find(t => t.id === id);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.save();
+                    this.render();
+                    this.updateStats();
+                }
+            }
+
+            incrementStat(statName) {
+                const today = new Date().toDateString();
+                const stats = JSON.parse(localStorage.getItem('aiStats')) || {};
+                
+                if (!stats[today]) {
+                    stats[today] = {
+                        totalActions: 0,
+                        webActions: 0,
+                        voiceCommands: 0
+                    };
+                }
+                
+                stats[today][statName]++;
+                localStorage.setItem('aiStats', JSON.stringify(stats));
+                this.updateStats();
+            }
+
+            updateStats() {
+                const today = new Date().toDateString();
+                const stats = JSON.parse(localStorage.getItem('aiStats')) || {};
+                const todayStats = stats[today] || {
+                    totalActions: 0,
+                    webActions: 0,
+                    voiceCommands: 0
+                };
+                
+                document.getElementById('totalActions').textContent = todayStats.totalActions;
+                document.getElementById('webActions').textContent = todayStats.webActions;
+                document.getElementById('voiceCommands').textContent = todayStats.voiceCommands;
+            }
+
+            formatTime(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+                return date.toLocaleDateString();
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            save() {
+                localStorage.setItem('aiTasks', JSON.stringify(this.tasks));
+            }
+
+            saveActions() {
+                localStorage.setItem('aiActions', JSON.stringify(this.actions));
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                const icon = document.getElementById('notificationIcon');
+                const text = document.getElementById('notificationText');
+                
+                text.textContent = message;
+                icon.textContent = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '✅';
+                notification.style.background = type === 'error' ? 'var(--danger)' : 
+                                               type === 'warning' ? 'var(--warning)' : 'var(--success)';
+                
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 4000);
+            }
+        }
+
+        // Initialize the AI Assistant
+        const assistant = new AIAssistant();
+
+        // Listen for keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Space to activate voice
+            if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('voiceBtn').click();
+            }
+        });
+
+        // Add some example tasks on first load
+        if (assistant.tasks.length === 0) {
+            assistant.addTask('Say "Open YouTube" to open YouTube', 'task');
+            assistant.addTask('Say "Calculate 25 times 4" to use calculator', 'task');
+            assistant.addTask('Say "Set timer for 5 minutes" to set a timer', 'task');
+        }
+    </script>
+</body>
+</html>
